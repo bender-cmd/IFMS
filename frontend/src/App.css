@@ -1,0 +1,67 @@
+.App {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.input-section {
+  background: #f5f5f5;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  spacing: 10px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: inline-block;
+  width: 150px;
+}
+
+.coin-input {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.coin-input input {
+  flex: 1;
+  padding: 8px;
+}
+
+button {
+  padding: 8px 16px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #45a049;
+}
+
+.error {
+  color: red;
+  margin: 15px 0;
+}
+
+.results table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.results th, .results td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.results th {
+  background-color: #f2f2f2;
+}

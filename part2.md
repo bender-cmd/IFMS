@@ -16,7 +16,7 @@
         |       +-----------------+
         |       |  REBALANCE_LOG  |
         |       +-----------------+
-        +------| PK log_id       |
+        +-------| PK log_id       |
                 | FK fund_id     |
                 | status         |
                 | timestamp      |
@@ -35,7 +35,7 @@
                                 +------------------+
 ```                            
 
-## ✅Key Tables Explanation
+## ✅ Key Tables Explanation
 
     FUND: Stores index fund metadata (name, description, total capital)
 
@@ -83,7 +83,21 @@
 +-------------------------------+
 | Save FundSnapshot             |
 | Log to RebalanceLog           |
-| (Optionally trigger trades)   |
++-------------------------------+
+     |
+     v
++-------------------------------+
+| Trigger trades where required |
++-------------------------------+
+     |
+     v
++-------------------------------+
+| Produce Reports               |
++-------------------------------+
+     |
+     v
++-------------------------------+
+| Cleanup/Housekeeping          |
 +-------------------------------+
 ```
 
@@ -93,7 +107,7 @@
 
         Cron job triggers based on schedule (e.g., daily at market close)
     
-        Identifies funds due for rebalancing (could be all or based on custom schedules)
+        Identifies funds due for rebalancing
 
 2. **Fetch Fund Data**
 
@@ -112,7 +126,7 @@
 
           a. Calculate current allocations based on latest prices
           b. Compare against target allocations
-          c. Determine if rebalance threshold is met (e.g., any asset >±5% from target)
+          c. Determine if rebalance threshold is met
           d. Calculate required trades to return to target allocations
 
 5. **Pre-Execution Logging**

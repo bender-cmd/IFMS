@@ -1,6 +1,58 @@
 import React, {useState} from 'react';
 import './App.css';
 
+// Add this outside your component (top of file)
+const COINGECKO_CACHE_KEY = 'coingecko-coinlist';
+const CACHE_EXPIRY_HOURS = 24; // Cache coin list for 24 hours
+
+// Cached coin list fetcher
+const getCachedCoinList = async () => {
+	// 1. Check cache
+	const cachedData = localStorage.getItem(COINGECKO_CACHE_KEY);
+
+	if (cachedData) {
+		const {timestamp, data} = JSON.parse(cachedData);
+
+		// Return cached data if not expired
+		if (Date.now() - timestamp < CACHE_EXPIRY_HOURS * 60 * 60 * 1000) {
+			return data;
+		}
+	}
+
+	// 2. Fetch fresh data
+	try {
+		const response = await fetch('https://api.coingecko.com/api/v3/coins/list');
+		const freshData = await response.json();
+
+		// Update cache with timestamp
+		localStorage.setItem(COINGECKO_CACHE_KEY, JSON.stringify({
+			timestamp: Date.now(),
+			data: freshData
+		}));
+
+		return freshData;
+	} catch (error) {
+		// Fallback to cache even if expired when API fails
+		if (cachedData) {
+			console.warn('Using expired cache due to API failure');
+			return JSON.parse(cachedData).data;
+		}
+		throw error;
+	}
+};
+
+// Main mapping function
+const getCoinGeckoId = async (ticker) => {
+	try {
+		const coins = await getCachedCoinList();
+		const coin = coins.find(c => c.symbol === ticker.toLowerCase());
+		return coin?.id || null;
+	} catch (error) {
+		console.error('Failed to get CoinGecko ID:', error);
+		return null;
+	}
+};
+
 function App() {
 	const [coins, setCoins] = useState([{ticker: '', mcap: '', price: ''}]);
 	const [assetCap, setAssetCap] = useState(0.5);
@@ -36,37 +88,48 @@ function App() {
 
 	const calculate = async () => {
 		try {
-			// First update the last row with Binance data if price is empty
 			const updatedCoins = [...coins];
 			const lastIndex = updatedCoins.length - 1;
 
+			// Update last row if price is empty
 			if (lastIndex >= 0) {
 				const lastCoin = updatedCoins[lastIndex];
 
-				// Only fetch if ticker exists and price is empty
 				if (lastCoin.ticker && !lastCoin.price) {
 					try {
-						const symbol = `${lastCoin.ticker.toUpperCase()}USDT`;
-						const response = await fetch(
-							`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`
+						// 1. Get Binance price
+						const binanceSymbol = `${lastCoin.ticker.toUpperCase()}USDT`;
+						const binanceResponse = await fetch(
+							`https://api.binance.com/api/v3/ticker/price?symbol=${binanceSymbol}`
 						);
+						const binanceData = await binanceResponse.json();
+						const price = parseFloat(binanceData.price);
 
-						if (response.ok) {
-							const data = await response.json();
-							updatedCoins[lastIndex] = {
-								...lastCoin,
-								price: parseFloat(data.lastPrice).toString(), // Convert to string for input
-								mcap: parseFloat(data.quoteVolume).toString() // Convert to string for input
-							};
-							setCoins(updatedCoins); // Update the input form immediately
-						}
+						// 2. Get CoinGecko market cap
+						const coinGeckoId = await getCoinGeckoId(lastCoin.ticker);
+						if (!coinGeckoId) throw new Error('Coin not found on CoinGecko');
+
+						const cgResponse = await fetch(
+							`https://api.coingecko.com/api/v3/coins/${coinGeckoId}?localization=false`
+						);
+						const cgData = await cgResponse.json();
+						const mcap = cgData.market_data?.market_cap?.usd;
+
+						// Update the row
+						updatedCoins[lastIndex] = {
+							...lastCoin,
+							price: price.toString(),
+							mcap: mcap?.toString() || '0' // Fallback to 0 if mcap missing
+						};
+						setCoins(updatedCoins);
 					} catch (error) {
-						console.error('Binance fetch error:', error);
+						console.error('Fetch error:', error);
+						// Continue calculation with existing data
 					}
 				}
 			}
 
-			// Now process all coins for the calculation
+			// Rest of your calculate function remains the same...
 			const validCoins = updatedCoins
 				.filter(coin => coin.ticker)
 				.map(coin => ({
@@ -75,11 +138,10 @@ function App() {
 					price: parseFloat(coin.price) || 0
 				}));
 
-			if (validCoins.length === 0) {
-				throw new Error('Please enter at least one valid coin ticker');
-			}
+			if (validCoins.length === 0) throw new Error('Please enter at least one valid coin ticker');
 
-			// Send to backend
+
+			// After getting response from backend
 			const response = await fetch('http://localhost:8000/calculate', {
 				method: 'POST',
 				headers: {'Content-Type': 'application/json'},
@@ -92,9 +154,20 @@ function App() {
 
 			if (!response.ok) throw new Error('Calculation failed');
 
-			setResults(await response.json());
-			setError('');
+			const resultData = await response.json();
 
+			// Ensure results have the expected structure
+			const formattedResults = Array.isArray(resultData)
+				? resultData.map(coin => ({
+					ticker: coin.ticker || '',
+					amount: parseFloat(coin.amount) || 0,
+					zar_value: parseFloat(coin.zar_value) || 0,
+					percentage: parseFloat(coin.percentage) || 0
+				}))
+				: [];
+
+			setResults(formattedResults);
+			setError('');
 		} catch (err) {
 			setError(err.message);
 			setResults(null);

@@ -36,14 +36,50 @@ function App() {
 
 	const calculate = async () => {
 		try {
-			const validCoins = coins.map(coin => ({
-				ticker: coin.ticker,
-				mcap: parseFloat(coin.mcap),
-				price: parseFloat(coin.price)
-			})).filter(coin => !isNaN(coin.mcap) && !isNaN(coin.price) && coin.ticker);
+			// First update the last row with Binance data if price is empty
+			const updatedCoins = [...coins];
+			const lastIndex = updatedCoins.length - 1;
 
-			if (validCoins.length === 0) throw new Error('Please enter valid coins');
+			if (lastIndex >= 0) {
+				const lastCoin = updatedCoins[lastIndex];
 
+				// Only fetch if ticker exists and price is empty
+				if (lastCoin.ticker && !lastCoin.price) {
+					try {
+						const symbol = `${lastCoin.ticker.toUpperCase()}USDT`;
+						const response = await fetch(
+							`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`
+						);
+
+						if (response.ok) {
+							const data = await response.json();
+							updatedCoins[lastIndex] = {
+								...lastCoin,
+								price: parseFloat(data.lastPrice).toString(), // Convert to string for input
+								mcap: parseFloat(data.quoteVolume).toString() // Convert to string for input
+							};
+							setCoins(updatedCoins); // Update the input form immediately
+						}
+					} catch (error) {
+						console.error('Binance fetch error:', error);
+					}
+				}
+			}
+
+			// Now process all coins for the calculation
+			const validCoins = updatedCoins
+				.filter(coin => coin.ticker)
+				.map(coin => ({
+					ticker: coin.ticker,
+					mcap: parseFloat(coin.mcap) || 0,
+					price: parseFloat(coin.price) || 0
+				}));
+
+			if (validCoins.length === 0) {
+				throw new Error('Please enter at least one valid coin ticker');
+			}
+
+			// Send to backend
 			const response = await fetch('http://localhost:8000/calculate', {
 				method: 'POST',
 				headers: {'Content-Type': 'application/json'},
@@ -51,12 +87,14 @@ function App() {
 					asset_cap: parseFloat(assetCap),
 					total_capital: parseFloat(totalCapital),
 					coins: validCoins
-				}),
+				})
 			});
 
 			if (!response.ok) throw new Error('Calculation failed');
+
 			setResults(await response.json());
 			setError('');
+
 		} catch (err) {
 			setError(err.message);
 			setResults(null);

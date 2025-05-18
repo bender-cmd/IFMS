@@ -45,6 +45,21 @@ const getCachedCoinList = async () => {
 const getCoinGeckoId = async (ticker) => {
 	try {
 		const coins = await getCachedCoinList();
+
+		// Special cases for popular coins that have duplicates
+		const PRIORITY_COINS = {
+			eth: 'ethereum',  // Force Ethereum mainnet
+			btc: 'bitcoin',
+			xrp: 'xrp',
+			sol: 'solana',
+		};
+
+		// Check priority list first
+		const lowerTicker = ticker.toLowerCase();
+		if (PRIORITY_COINS[lowerTicker]) {
+			return PRIORITY_COINS[lowerTicker];
+		}
+
 		const coin = coins.find(c => c.symbol === ticker.toLowerCase());
 		return coin?.id || null;
 	} catch (error) {
@@ -114,6 +129,8 @@ function App() {
 						);
 						const cgData = await cgResponse.json();
 						const mcap = cgData.market_data?.market_cap?.usd;
+
+						if (price === 0 || mcap === 0) throw new Error('Not enough data to calculate');
 
 						// Update the row
 						updatedCoins[lastIndex] = {

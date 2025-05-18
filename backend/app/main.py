@@ -71,6 +71,9 @@ def calculate_allocations(asset_cap: float, total_capital: float, coins: List[Co
 	results = []
 	for coin, weight in zip(coins, current_weights):
 		zar_value = total_capital * weight
+		if zar_value <= 0 or coin.price <= 0:
+			print(f'not enough data to calculate for coin {coin.ticker}')
+			continue
 		amount = zar_value / coin.price
 		results.append(CoinOutput(
 			ticker=coin.ticker,

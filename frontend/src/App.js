@@ -115,7 +115,7 @@ function App() {
 						// 1. Get Binance price
 						const binanceSymbol = `${lastCoin.ticker.toUpperCase()}USDT`;
 						const binanceResponse = await fetch(
-							`https://api.binance.com/api/v3/ticker/price?symbol=${binanceSymbol}`
+							`http://localhost:8000/binance_price?symbol=${binanceSymbol}`
 						);
 						const binanceData = await binanceResponse.json();
 						const price = parseFloat(binanceData.price);
@@ -125,7 +125,7 @@ function App() {
 						if (!coinGeckoId) throw new Error('Coin not found on CoinGecko');
 
 						const cgResponse = await fetch(
-							`https://api.coingecko.com/api/v3/coins/${coinGeckoId}?localization=false`
+							`http://localhost:8000/coingecko_data?${coinGeckoId}`
 						);
 						const cgData = await cgResponse.json();
 						const mcap = cgData.market_data?.market_cap?.usd;
@@ -146,7 +146,6 @@ function App() {
 				}
 			}
 
-			// Rest of your calculate function remains the same...
 			const validCoins = updatedCoins
 				.filter(coin => coin.ticker)
 				.map(coin => ({

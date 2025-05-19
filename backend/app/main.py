@@ -45,7 +45,7 @@ def calculate_allocation(asset_cap: float, total_capital: float, coins: List[Coi
 
         uncapped_indices = [
             i for i, w in enumerate(weights)
-            if weights[i] > asset_cap
+            if weights[i] >= capped_weights[i]
         ]
 
         if not uncapped_indices or remainder <= 0:
@@ -94,8 +94,8 @@ async def get_binance_price(symbol: str):
     return response.json()
 
 @app.get("/coingecko_data")
-async def get_binance_price(coin_gecko_id: str):
-    url = f"https://api.coingecko.com/api/v3/coins/${coin_gecko_id}?localization=false"
+async def get_coingecko_data(coin_gecko_id: str):
+    url = f"https://api.coingecko.com/api/v3/coins/{coin_gecko_id}?localization=false"
     async with httpx.AsyncClient() as client:
         response = await client.get(url)
     return response.json()

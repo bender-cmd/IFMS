@@ -164,14 +164,7 @@
     
        Trigger alerts for any failures requiring manual intervention
 
-## 🌟 Key Considerations:
+## 🌟 Future Improvements:
 
-- Threshold Checking: Only rebalance when allocations drift beyond configured thresholds
-
-- Batch Processing: Handle multiple funds efficiently in parallel
-
-- Idempotency: Ensure scheduler can recover from mid-process failures
-
-- Dry Run Mode: Support simulation without actual trading
-
-- Circuit Breakers: Suspend trading during extreme market volatility
+- Add test modules
+- Add rate limiting for the api

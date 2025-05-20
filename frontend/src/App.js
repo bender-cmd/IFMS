@@ -15,7 +15,7 @@ const getCachedCoinList = async () => {
   }
 
   try {
-    const response = await fetch('https://api.coingecko.com/api/v3/coins/list');
+    const response = await fetch('http://localhost:8000/coingecko_coin_list');
     const freshData = await response.json();
     localStorage.setItem(COINGECKO_CACHE_KEY, JSON.stringify({
       timestamp: Date.now(),
@@ -68,7 +68,7 @@ function App() {
       i === index ? { ...coin, [field]: value } : coin
     );
 
-    if (
+    if ( // if rows filled and working on last row, add new row
       newCoins[index].ticker &&
       newCoins[index].mcap &&
       newCoins[index].price &&
@@ -123,14 +123,15 @@ function App() {
       const lastCoin = coins[lastIndex];
 
       let updatedCoins = [...coins];
+	  // if working on last row and we have a ticker but no price, fetch the price
       if (lastCoin.ticker && !lastCoin.price) {
         updatedCoins[lastIndex] = await fetchLastCoinData(lastCoin);
         setCoins(updatedCoins);
       }
 
       const validCoins = updatedCoins
-        .filter(coin => coin.ticker)
-        .map(({ ticker, mcap, price }) => ({
+        .filter(coin => coin.ticker) // ticker must be present
+        .map(({ ticker, mcap, price }) => ({ // extract values and parse
           ticker,
           mcap: parseFloat(mcap) || 0,
           price: parseFloat(price) || 0
